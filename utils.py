@@ -52,16 +52,28 @@ class SuperJobAPI(APIVacancy):
                    'Authorization': 'Bearer r.000000010000001.example.access_token',
                    'Content-Type': 'application/x-www-form-urlencoded'}
         parameters = {'keyword': vacancy,
-                      # 'payment_value': salary,
                       'payment_defined': 1,
-                      'per_page': 100}
-
+                      'payment_value': 1,
+                      'per_page': 100
+                      }
         response = requests.get(self.url, headers=headers, params=parameters).json()
-
         return response
 
     def format_data(self, data):
-        pass
+        vacancy_dict = {}
+        for vacancy in data['objects']:
+            try:
+                responsibility = vacancy['client']['description']
+            except KeyError:
+                responsibility = ''
+            vacancy_dict[vacancy['id']] = {'url': vacancy['link'],
+                                           'name': vacancy['profession'],
+                                           'salary': [vacancy['payment_from'],
+                                                      vacancy['payment_to'], vacancy['currency']],
+                                           'requirement': vacancy['candidat'],
+                                           'responsibility': responsibility,
+                                           'date_published': ''}
+        return vacancy_dict
 
 
 class Vacancy:
@@ -81,4 +93,7 @@ class JSONSaver:
 
 hh_api = SuperJobAPI()
 hh_vacancies = hh_api.get_vacancies("Python")
-print(hh_vacancies)
+fos = hh_api.format_data(hh_vacancies)
+print(fos)
+for v in fos.items():
+    print(v)
