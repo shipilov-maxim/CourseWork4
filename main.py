@@ -16,6 +16,7 @@ json_saver.add_vacancy(vacancy)
 json_saver.get_vacancies_by_salary("100 000-150 000 руб.")
 json_saver.delete_vacancy(vacancy)
 
+
 # Функция для взаимодействия с пользователем
 def user_interaction():
     platforms = ["HeadHunter", "SuperJob"]
