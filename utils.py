@@ -2,9 +2,10 @@ from abc import abstractmethod, ABC
 from datetime import datetime
 import os
 import requests
+import json
 
 
-class APIVacancy(ABC):
+class API(ABC):
 
     @abstractmethod
     def get_vacancies(self, vacancy):
@@ -15,7 +16,7 @@ class APIVacancy(ABC):
         pass
 
 
-class HeadHunterAPI(APIVacancy):
+class HeadHunterAPI(API):
     def __init__(self):
         self.url = 'https://api.hh.ru/vacancies'
 
@@ -41,7 +42,7 @@ class HeadHunterAPI(APIVacancy):
         return vacancy_dict
 
 
-class SuperJobAPI(APIVacancy):
+class SuperJobAPI(API):
     def __init__(self):
         self.url = 'https://api.superjob.ru/2.0/vacancies/'
 
@@ -77,12 +78,51 @@ class SuperJobAPI(APIVacancy):
 
 
 class Vacancy:
-    pass
+    def __init__(self, url, name, salary, requirement, responsibility, date_published):
+        self.url = url
+        self.name = name
+        self.salary = salary
+        self.requirement = requirement
+        self.responsibility = responsibility
+        self.date_published = date_published
+
+    def __repr__(self):
+        return f"""{self.name}
+{self.url}
+{self.salary}
+{self.requirement}
+{self.responsibility}
+Дата публикации: {self.date_published}"""
 
 
 class JSONSaver:
-    def add_vacancy(self):
-        pass
+    @staticmethod
+    def save_file(data):
+        with open('vacancies.json', 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+
+    @staticmethod
+    def add_vacancy(vacancy):
+        with open('vacancies.json', "r+", encoding='utf-8') as f:
+            data = json.load(f)
+            data.append(vacancy)
+        with open('vacancies.json', "w", encoding='utf-8') as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+
+    @staticmethod
+    def load_from_file():
+        vacancies = []
+        with open('vacancies.json', encoding='utf-8') as f:
+            text = f.read()
+        text = json.loads(text)
+        for key, value in text.items():
+            vacancies.append(Vacancy(value['url'],
+                                     value['name'],
+                                     value['salary'],
+                                     value['requirement'],
+                                     value['responsibility'],
+                                     value['date_published']))
+        return vacancies
 
     def get_vacancies_by_salary(self):
         pass
@@ -92,8 +132,11 @@ class JSONSaver:
 
 
 hh_api = SuperJobAPI()
+js = JSONSaver
 hh_vacancies = hh_api.get_vacancies("Python")
 fos = hh_api.format_data(hh_vacancies)
-print(fos)
-for v in fos.items():
-    print(v)
+# print(fos)
+js.save_file(fos)
+print(js.load_from_file())
+
+
