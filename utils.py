@@ -29,17 +29,18 @@ class HeadHunterAPI(API):
         return response
 
     def format_data(self, data):
-        vacancy_dict = {}
+        vacancy_list = []
         for vacancy in data['items']:
             date_published = datetime.strptime(vacancy['published_at'], "%Y-%m-%dT%H:%M:%S%z")
-            vacancy_dict[vacancy['id']] = {'url': f"https://hh.ru/vacancy/{vacancy['id']}",
-                                           'name': vacancy['name'],
-                                           'salary': [vacancy['salary']['from'], vacancy['salary']['to'],
-                                                      vacancy['salary']['currency']],
-                                           'requirement': vacancy['snippet']['requirement'],
-                                           'responsibility': vacancy['snippet']['responsibility'],
-                                           'date_published': date_published.strftime("%d.%m.%Y")}
-        return vacancy_dict
+            vacancy_dict = {'url': f"https://hh.ru/vacancy/{vacancy['id']}",
+                            'name': vacancy['name'],
+                            'salary': [vacancy['salary']['from'], vacancy['salary']['to'],
+                                       vacancy['salary']['currency']],
+                            'requirement': vacancy['snippet']['requirement'],
+                            'responsibility': vacancy['snippet']['responsibility'],
+                            'date_published': date_published.strftime("%d.%m.%Y")}
+            vacancy_list.append(vacancy_dict)
+        return vacancy_list
 
 
 class SuperJobAPI(API):
@@ -61,20 +62,21 @@ class SuperJobAPI(API):
         return response
 
     def format_data(self, data):
-        vacancy_dict = {}
+        vacancy_list = []
         for vacancy in data['objects']:
             try:
                 responsibility = vacancy['client']['description']
             except KeyError:
                 responsibility = ''
-            vacancy_dict[vacancy['id']] = {'url': vacancy['link'],
-                                           'name': vacancy['profession'],
-                                           'salary': [vacancy['payment_from'],
-                                                      vacancy['payment_to'], vacancy['currency']],
-                                           'requirement': vacancy['candidat'],
-                                           'responsibility': responsibility,
-                                           'date_published': ''}
-        return vacancy_dict
+            vacancy_dict = {'url': vacancy['link'],
+                            'name': vacancy['profession'],
+                            'salary': [vacancy['payment_from'],
+                                       vacancy['payment_to'], vacancy['currency']],
+                            'requirement': vacancy['candidat'],
+                            'responsibility': responsibility,
+                            'date_published': ''}
+            vacancy_list.append(vacancy_dict)
+        return vacancy_list
 
 
 class Vacancy:
@@ -86,13 +88,27 @@ class Vacancy:
         self.responsibility = responsibility
         self.date_published = date_published
 
+        self.salary_max = self.salary_max()
+
     def __repr__(self):
         return f"""{self.name}
 {self.url}
-{self.salary}
+{self.salary_max} {self.salary[2]}
 {self.requirement}
 {self.responsibility}
 Дата публикации: {self.date_published}"""
+
+    def salary_max(self):
+        if self.salary[1] is None and self.salary[0] is None:
+            return 0
+        elif self.salary[1] is None :
+            return self.salary[0]
+        elif self.salary[0] is None:
+            return self.salary[1]
+        elif self.salary[0] > self.salary[1]:
+            return self.salary[0]
+        elif self.salary[0] <= self.salary[1]:
+            return self.salary[1]
 
 
 class JSONSaver:
@@ -105,7 +121,7 @@ class JSONSaver:
     def add_vacancy(vacancy):
         with open('vacancies.json', "r+", encoding='utf-8') as f:
             data = json.load(f)
-            data.append(vacancy)
+            [data.append(v) for v in vacancy]
         with open('vacancies.json', "w", encoding='utf-8') as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
 
@@ -115,28 +131,27 @@ class JSONSaver:
         with open('vacancies.json', encoding='utf-8') as f:
             text = f.read()
         text = json.loads(text)
-        for key, value in text.items():
-            vacancies.append(Vacancy(value['url'],
-                                     value['name'],
-                                     value['salary'],
-                                     value['requirement'],
-                                     value['responsibility'],
-                                     value['date_published']))
+        for item in text:
+            vacancies.append(Vacancy(item['url'],
+                                     item['name'],
+                                     item['salary'],
+                                     item['requirement'],
+                                     item['responsibility'],
+                                     item['date_published']))
         return vacancies
 
-    def get_vacancies_by_salary(self):
-        pass
 
-    def delete_vacancy(self):
-        pass
+def filter_vacancies(list_, filter_word):
+    d = []
+    [d.append(v) for v in list_ if filter_word in repr(v)]
+    return d
 
 
-hh_api = SuperJobAPI()
-js = JSONSaver
-hh_vacancies = hh_api.get_vacancies("Python")
-fos = hh_api.format_data(hh_vacancies)
-# print(fos)
-js.save_file(fos)
-print(js.load_from_file())
+def sort_vacancies(list_v):
+    sorted_data = sorted(list_v, key=lambda x: x.salary_max, reverse=True)
+    return sorted_data
 
+
+def get_top_vacancies(list_v, top_n):
+    return [print(v) for v in list_v[:top_n]]
 
