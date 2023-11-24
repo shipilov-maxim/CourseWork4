@@ -91,12 +91,8 @@ class Vacancy:
         self.salary_max = self.salary_max()
 
     def __repr__(self):
-        return f"""{self.name}
-{self.url}
-{self.salary_max} {self.salary[2]}
-{self.requirement}
-{self.responsibility}
-Дата публикации: {self.date_published}"""
+        return (f"{self.name}\n{self.url}\n{self.salary_max} {self.salary[2]}\n{self.requirement}\n"
+                f"{self.responsibility}\nДата публикации: {self.date_published}")
 
     def salary_max(self):
         if self.salary[1] is None and self.salary[0] is None:
